@@ -1,22 +1,28 @@
 
 package li.itcc.hackathon2014;
 
-import li.itcc.hackathon2014.vaduztour.ExampleFragment;
+import li.itcc.hackathon2014.Selfie.SelfieLogic;
+import li.itcc.hackathon2014.vaduztour.AboutFragment;
+import li.itcc.hackathon2014.vaduztour.CastleFragment;
+import li.itcc.hackathon2014.vaduztour.CompassFragment;
+import li.itcc.hackathon2014.vaduztour.FinishFragment;
+import li.itcc.hackathon2014.vaduztour.HotColdFragment;
+import li.itcc.hackathon2014.vaduztour.IntroFragment;
+import li.itcc.hackathon2014.vaduztour.QuestionFragment;
+import li.itcc.hackathon2014.vaduztour.SculptureFragment;
 import android.app.ActionBar;
 import android.app.Activity;
-import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.widget.DrawerLayout;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
 
 public class MainActivity extends Activity implements
         NavigationDrawerFragment.NavigationDrawerCallbacks {
+    public static final int REQUEST_CODE_TAKE_PICTURE = 100;
 
     /**
      * Fragment managing the behaviors, interactions and presentation of the
@@ -30,9 +36,14 @@ public class MainActivity extends Activity implements
      */
     private CharSequence mTitle;
 
+    private SelfieLogic fSelfieLogic;
+
+    private AbstractTourFragment fCurrentFragment;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        fSelfieLogic = new SelfieLogic(this);
         setContentView(R.layout.activity_main);
 
         mNavigationDrawerFragment = (NavigationDrawerFragment) getFragmentManager()
@@ -48,42 +59,42 @@ public class MainActivity extends Activity implements
     public void onNavigationDrawerItemSelected(int position) {
         // update the main content by replacing fragments
         FragmentManager fragmentManager = getFragmentManager();
-
-        FragmentTransaction trans = fragmentManager.beginTransaction();
+        AbstractTourFragment fragment;
         if (position == 0) {
-            trans.replace(R.id.container, ExampleFragment.newInstance(position + 1, 0));
+            fragment = IntroFragment.newInstance(position + 1, 0);
+            fragment.setId("intro");
         }
         else {
-            trans.replace(R.id.container, PlaceholderFragment.newInstance(position + 1));
+            fragment = AboutFragment.newInstance(position + 1, 0);
+            fragment.setId("about");
         }
+        FragmentTransaction trans = fragmentManager.beginTransaction();
+        trans.replace(R.id.container, fragment);
         trans.commit();
     }
 
-    @Deprecated
-    public void onSectionAttached(int number) {
-        switch (number) {
-            case 1:
-                mTitle = getString(R.string.title_section1);
-                break;
-            case 2:
-                mTitle = getString(R.string.title_section2);
-                break;
-            case 3:
-                mTitle = getString(R.string.title_section3);
-                break;
+    @Override
+    public void onBackPressed() {
+        if (fCurrentFragment != null) {
+            if (fCurrentFragment.getTourNumber() == 1 && fCurrentFragment.getTourPage() > 0) {
+                FragmentManager fragmentManager = getFragmentManager();
+                AbstractTourFragment fragment = IntroFragment.newInstance(1, 0);
+                fragment.setId("intro");
+                FragmentTransaction trans = fragmentManager.beginTransaction();
+                trans.replace(R.id.container, fragment);
+                trans.commit();
+            }
         }
     }
-    
+
     public void onFragmentAttached(AbstractTourFragment fragment, int tourNumber, int tourPage) {
+        fCurrentFragment = fragment;
         switch (tourNumber) {
             case 1:
                 mTitle = getString(R.string.title_section1);
                 break;
             case 2:
                 mTitle = getString(R.string.title_section2);
-                break;
-            case 3:
-                mTitle = getString(R.string.title_section3);
                 break;
         }
     }
@@ -115,48 +126,60 @@ public class MainActivity extends Activity implements
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         if (id == R.id.action_settings) {
+            fSelfieLogic.startTakePictureActivity();
             return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
-    /**
-     * A placeholder fragment containing a simple view.
-     */
-    public static class PlaceholderFragment extends Fragment {
-        /**
-         * The fragment argument representing the section number for this
-         * fragment.
-         */
-        private static final String ARG_SECTION_NUMBER = "section_number";
-
-        /**
-         * Returns a new instance of this fragment for the given section number.
-         */
-        public static PlaceholderFragment newInstance(int sectionNumber) {
-            PlaceholderFragment fragment = new PlaceholderFragment();
-            Bundle args = new Bundle();
-            args.putInt(ARG_SECTION_NUMBER, sectionNumber);
-            fragment.setArguments(args);
-            return fragment;
+    public void onFragmentNextClicked(AbstractTourFragment abstractTourFragment, int tourNumber,
+            int tourPage) {
+        AbstractTourFragment nextFragment;
+        int nextPage = tourPage + 1;
+        if (tourPage == 0) {
+            nextFragment = HotColdFragment.newInstance(tourNumber, nextPage);
+            nextFragment.setId("hotcold");
         }
-
-        public PlaceholderFragment() {
+        else if (tourPage == 1) {
+            nextFragment = CompassFragment.newInstance(tourNumber, nextPage);
+            nextFragment.setId("compass");
         }
-
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.fragment_main, container,
-                    false);
-            return rootView;
+        else if (tourPage == 2) {
+            nextFragment = QuestionFragment.newInstance(tourNumber, nextPage, QuestionFragment.QUESTION_SET_WOMAN);
+            nextFragment.setId("question_woman");
         }
+        else if (tourPage == 3) {
+            nextFragment = CastleFragment.newInstance(tourNumber, nextPage);
+            nextFragment.setId("castle");
+        }
+        else if (tourPage == 4) {
+            nextFragment = QuestionFragment.newInstance(tourNumber, nextPage, QuestionFragment.QUESTION_SET_CASTLE);
+            nextFragment.setId("question_castle");
+        }
+        else if (tourPage == 5) {
+            nextFragment = SculptureFragment.newInstance(tourNumber, nextPage);
+            nextFragment.setId("sculpture");
+        }
+        else if (tourPage == 6) {
+            nextFragment = FinishFragment.newInstance(tourNumber, nextPage);
+            nextFragment.setId("finish");
+        }
+        else {
+            return;
+        }
+        FragmentManager fragmentManager = getFragmentManager();
+        FragmentTransaction trans = fragmentManager.beginTransaction();
+        trans.replace(R.id.container, nextFragment);
+        trans.commit();
+    }
 
-        @Override
-        public void onAttach(Activity activity) {
-            super.onAttach(activity);
-            ((MainActivity) activity).onSectionAttached(getArguments().getInt(
-                    ARG_SECTION_NUMBER));
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_TAKE_PICTURE) {
+            fSelfieLogic.onPictureResult(requestCode, resultCode, data);
+        }
+        else {
+            super.onActivityResult(requestCode, resultCode, data);
         }
     }
 
